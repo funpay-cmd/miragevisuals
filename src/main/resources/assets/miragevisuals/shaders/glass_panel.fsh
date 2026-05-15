@@ -53,14 +53,15 @@ void main() {
     }
 
     // Vertical gradient inside the panel.
+    // gl_FragCoord.y grows upward in GL, so relPos.y > 0 = top of panel on screen.
     vec2 norm = relPos / max(halfSize, vec2(1.0));
-    float vertical = clamp(-norm.y * 0.5 + 0.5, 0.0, 1.0);
+    float vertical = clamp(norm.y * 0.5 + 0.5, 0.0, 1.0);
     vec3 baseTop = TintColor.rgb * 1.10;
     vec3 baseBot = TintColor.rgb * 0.90;
     vec3 body = mix(baseBot, baseTop, vertical);
 
-    // Soft top light wash.
-    float topBand = 1.0 - smoothstep(-halfSize.y, -halfSize.y + max(4.0, PanelSize.y * 0.5), relPos.y);
+    // Soft top light wash — 1 at the top edge, fading toward the middle.
+    float topBand = smoothstep(halfSize.y - max(4.0, PanelSize.y * 0.5), halfSize.y, relPos.y);
     body += vec3(Highlight) * topBand * 0.10;
 
     // Soft inner sheen near the edge (very subtle).
