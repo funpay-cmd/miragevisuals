@@ -10,7 +10,9 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -43,6 +45,13 @@ public abstract class TitleScreenLogoMixin extends Screen {
     private static final String LOGO_TEXT = "MIRAGEVISUALS.LOL";
     private static final float LOGO_SCALE = 3.0F;
 
+    // Snapshotted from the redirected LogoDrawer.draw(…, float alpha) call so
+    // that the @Inject below can fade the wordmark in lockstep with the
+    // vanilla title-screen fade-in (buttons / splash / copyright). Without
+    // this, the wordmark would pop in at full opacity on the very first frame.
+    @Unique
+    private float miragevisuals$logoAlpha = 1.0F;
+
     private TitleScreenLogoMixin() {
         super(null);
     }
@@ -55,7 +64,9 @@ public abstract class TitleScreenLogoMixin extends Screen {
         )
     )
     private void miragevisuals$skipVanillaLogo(LogoDrawer drawer, DrawContext ctx, int screenWidth, float alpha) {
-        // No-op: we render our own wordmark in the inject below.
+        // No-op for the vanilla bitmap, but capture the title-screen fade alpha
+        // so the wordmark in the @Inject below can match the fade.
+        this.miragevisuals$logoAlpha = alpha;
     }
 
     @Inject(method = "render", at = @At("RETURN"))
@@ -78,9 +89,15 @@ public abstract class TitleScreenLogoMixin extends Screen {
         int textX = Math.round(scaledX / LOGO_SCALE);
         int textY = Math.round(scaledY / LOGO_SCALE);
 
+        int alphaByte = Math.round(MathHelper.clamp(this.miragevisuals$logoAlpha, 0.0F, 1.0F) * 255.0F);
+        if (alphaByte <= 0) {
+            return;
+        }
+        int color = (alphaByte << 24) | 0x00FFFFFF;
+
         context.getMatrices().push();
         context.getMatrices().scale(LOGO_SCALE, LOGO_SCALE, 1.0F);
-        context.drawText(tr, styled, textX, textY, 0xFFFFFFFF, true);
+        context.drawText(tr, styled, textX, textY, color, true);
         context.getMatrices().pop();
     }
 }
