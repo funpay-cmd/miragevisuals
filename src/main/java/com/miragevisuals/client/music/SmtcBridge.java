@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -36,7 +37,10 @@ public final class SmtcBridge {
     private boolean disabled;
 
     public boolean isSupported() {
-        return System.getProperty("os.name", "").toLowerCase().contains("win");
+        // Use the root locale so the check stays correct on e.g. Turkish-locale
+        // Windows, where the default toLowerCase() would map 'W' -> 'w' but
+        // 'I' -> 'ı' (dotless i) and the substring test would fail.
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
     }
 
     public MusicState latest() {
@@ -116,7 +120,15 @@ public final class SmtcBridge {
             );
             pb.redirectErrorStream(true);
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-            pb.start();
+            Process p = pb.start();
+            // We never write to the command process: close stdin immediately so
+            // the native pipe handle isn't held until GC kicks in (one button
+            // mash can otherwise pile up dozens of dangling handles).
+            try {
+                p.getOutputStream().close();
+            } catch (IOException closeEx) {
+                MirageVisualsClient.LOGGER.debug("SMTC command stdin close failed", closeEx);
+            }
         } catch (IOException ex) {
             MirageVisualsClient.LOGGER.debug("SMTC command failed", ex);
         }
