@@ -1,0 +1,15 @@
+{
+  "providers": [
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    },
+    {
+      "type": "ttf",
+      "file": "miragevisuals:font/krona_one.ttf",
+      "shift": [0.0, 1.0],
+      "size": 12.0,
+      "oversample": 2.0
+    }
+  ]
+}

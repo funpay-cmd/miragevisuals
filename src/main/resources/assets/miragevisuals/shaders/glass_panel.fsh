@@ -1,17 +1,18 @@
 #version 150
 
-// Soft frosted-glass panel.
+// Clean translucent rounded rectangle.
 //
-// Renders a rounded rectangle with:
-//   * a wide, smoothly anti-aliased coverage so the edges fade instead
-//     of cutting hard against the scene (matches the reference mock);
-//   * an outer halo / glow that extends past the body to give the
-//     "floating blob" feel of the user's example;
-//   * a gentle vertical light-to-base gradient inside the body;
-//   * a soft top-light highlight that doesn't read as a hard band;
-//   * an optional thin rounded border.
+// The first iteration shipped a wide halo / glow / inner sheen to mimic
+// the original mock; the user since asked us to "remove the glow and
+// make the buttons more transparent". So this shader is now intentionally
+// minimal:
 //
-// The body is intentionally noise-free for a clean pastel look.
+//   * a softly anti-aliased rounded body, nothing past the edge;
+//   * a faint vertical gradient inside (kept tiny so the buttons don't
+//     read as glossy plastic);
+//   * an optional thin rounded border;
+//   * an optional top sheen, gated by the Highlight uniform — set
+//     Highlight = 0 from Java to turn it off entirely.
 
 uniform vec2 ScreenSize;
 uniform vec2 PanelPos;
@@ -39,61 +40,38 @@ void main() {
 
     float dist = roundedBoxSDF(relPos, halfSize, Radius);
 
-    // Outer halo: extends a few pixels past the body and fades out.
-    float glowRadius = max(Radius * 0.9, 6.0);
-    float glow = 1.0 - smoothstep(0.0, glowRadius, dist);
-    glow = pow(max(glow, 0.0), 1.4);
-
-    // Body coverage with a soft AA band so the edge feels diffused.
-    float bodyAa = max(1.0, Radius * 0.18);
-    float coverage = 1.0 - smoothstep(-bodyAa, bodyAa, dist);
-
-    if (dist > glowRadius) {
+    // Tight AA band — just enough to soften the corner without bleeding out.
+    float aa = 1.0;
+    float coverage = 1.0 - smoothstep(-aa, aa, dist);
+    if (coverage <= 0.0) {
         discard;
     }
 
-    // Vertical gradient inside the panel.
-    // gl_FragCoord.y grows upward in GL, so relPos.y > 0 = top of panel on screen.
+    // Faint vertical gradient: top slightly brighter than bottom.
     vec2 norm = relPos / max(halfSize, vec2(1.0));
     float vertical = clamp(norm.y * 0.5 + 0.5, 0.0, 1.0);
-    vec3 baseTop = TintColor.rgb * 1.10;
-    vec3 baseBot = TintColor.rgb * 0.90;
+    vec3 baseTop = TintColor.rgb * 1.04;
+    vec3 baseBot = TintColor.rgb * 0.96;
     vec3 body = mix(baseBot, baseTop, vertical);
 
-    // Soft top light wash — 1 at the top edge, fading toward the middle.
-    float topBand = smoothstep(halfSize.y - max(4.0, PanelSize.y * 0.5), halfSize.y, relPos.y);
-    body += vec3(Highlight) * topBand * 0.10;
+    // Optional top sheen — Java currently passes a tiny value here so the
+    // button reads as glass rather than matte, but the user can dial it
+    // to 0 to kill it completely.
+    if (Highlight > 0.0) {
+        float topBand = smoothstep(halfSize.y * 0.2, halfSize.y, relPos.y);
+        body += vec3(Highlight) * topBand * 0.06;
+    }
 
-    // Soft inner sheen near the edge (very subtle).
-    float edgeT = clamp(-dist, 0.0, max(Radius, 1.0));
-    float innerSheen = smoothstep(max(Radius, 1.0), 0.0, edgeT);
-    body += vec3(0.04) * innerSheen;
-
-    // Combine body and glow: outside the body we just show a fading halo,
-    // inside we show the body with optional border.
     vec3 color = body;
     float alpha = TintColor.a * coverage;
 
-    // Optional border for buttons (set BorderWidth = 0 to disable).
+    // Optional thin border — disabled when BorderWidth = 0.
     if (BorderWidth > 0.0) {
         float borderEdge = -BorderWidth;
-        float borderMix = 1.0 - smoothstep(borderEdge - bodyAa, borderEdge, dist);
+        float borderMix = 1.0 - smoothstep(borderEdge - aa, borderEdge, dist);
         color = mix(BorderColor.rgb, color, borderMix);
         alpha = mix(BorderColor.a * coverage, alpha, borderMix);
     }
-
-    // Outer halo contribution (sampled outside the body).
-    float outside = clamp(dist / glowRadius, 0.0, 1.0);
-    float haloAlpha = TintColor.a * 0.45 * (1.0 - outside) * (1.0 - outside);
-    // The halo color is the tint, slightly desaturated.
-    vec3 haloColor = TintColor.rgb;
-
-    float outsideMask = step(0.0, dist);          // 1 outside the body, 0 inside
-    color = mix(color, haloColor, outsideMask * (1.0 - coverage));
-    alpha = max(alpha, haloAlpha * (1.0 - coverage));
-
-    // Slight overall glow even inside (additive top-up).
-    alpha += glow * TintColor.a * 0.05 * coverage;
 
     fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
 }
