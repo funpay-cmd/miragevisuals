@@ -3,7 +3,7 @@
   "id": "miragevisuals",
   "version": "${version}",
   "name": "MirageVisuals",
-  "description": "Visual client for Minecraft 1.21.4 Fabric: rounded GUI corners and a pastel-lavender glass effect on main-menu buttons.",
+  "description": "Visual client for Minecraft 1.21.4 Fabric: rounded GUI corners, a pastel-lavender glass effect on main-menu buttons, and a top-right music widget that reads the current Windows media session (Spotify, Я.Музыка, browsers, any SMTC-aware player).",
   "authors": [
     "opsetter"
   ],

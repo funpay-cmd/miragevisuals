@@ -3,7 +3,8 @@
   "package": "com.miragevisuals.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "PressableWidgetMixin"
+    "PressableWidgetMixin",
+    "TitleScreenMusicWidgetMixin"
   ],
   "injectors": {
     "defaultRequire": 1
