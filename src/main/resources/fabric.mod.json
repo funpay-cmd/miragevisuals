@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "miragevisuals",
+  "version": "${version}",
+  "name": "MirageVisuals",
+  "description": "Visual client for Minecraft 1.21.4 Fabric: rounded GUI corners and a pastel-lavender glass effect on main-menu buttons.",
+  "authors": [
+    "opsetter"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.miragevisuals.client.MirageVisualsClient"
+    ]
+  },
+  "mixins": [
+    "miragevisuals.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

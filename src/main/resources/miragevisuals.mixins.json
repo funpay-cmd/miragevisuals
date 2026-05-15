@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.miragevisuals.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PressableWidgetMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "miragevisuals-refmap.json"
+}
